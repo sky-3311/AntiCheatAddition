@@ -82,6 +82,7 @@ public final class Teaming extends ViolationModule implements Listener
         final int allowedSize = loadInt(".allowed_size", 1);
         Preconditions.checkArgument(allowedSize > 0, "The Teaming allowed_size must be greater than 0.");
 
+        //TODO
         Bukkit.getScheduler().runTaskTimer(AntiCheatAddition.getInstance(), () -> {
 
             for (World world : enabledWorlds) {
