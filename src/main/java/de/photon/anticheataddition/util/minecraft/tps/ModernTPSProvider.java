@@ -17,7 +17,7 @@ final class ModernTPSProvider implements TPSProvider
 
     public ModernTPSProvider()
     {
-        Bukkit.getScheduler().runTaskTimer(AntiCheatAddition.getInstance(), () -> {
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(AntiCheatAddition.getInstance(), task -> {
             final long curr = System.currentTimeMillis();
             // Add the tick time difference as a data point.
             tickIntervals.add(curr - this.lastTick);

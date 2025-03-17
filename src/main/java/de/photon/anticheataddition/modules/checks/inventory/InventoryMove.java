@@ -13,11 +13,11 @@ import de.photon.anticheataddition.util.minecraft.world.material.MaterialUtil;
 import de.photon.anticheataddition.util.violationlevels.Flag;
 import de.photon.anticheataddition.util.violationlevels.ViolationLevelManagement;
 import de.photon.anticheataddition.util.violationlevels.ViolationManagement;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
@@ -47,8 +47,22 @@ public final class InventoryMove extends ViolationModule implements Listener
     {
         // Not many blocks moved to prevent exploits and world change problems.
         if (WorldUtil.INSTANCE.inSameWorld(event.getFrom(), event.getTo()) && event.getFrom().distanceSquared(event.getTo()) < 4) {
+
+            final Player player = user.getPlayer();
+            if (player == null || !player.isOnline()) return;
+
             // Teleport back the next tick.
-            Bukkit.getScheduler().runTask(AntiCheatAddition.getInstance(), () -> user.getPlayer().teleport(event.getFrom(), PlayerTeleportEvent.TeleportCause.UNKNOWN));
+            player.getScheduler().runDelayed(
+                    AntiCheatAddition.getInstance(),
+                    task -> {
+                        if (player.isOnline()) {
+                                player.teleport(event.getFrom(), PlayerTeleportEvent.TeleportCause.UNKNOWN);
+
+                        }
+                    },
+                    null,
+                    1L
+            );
         }
     }
 

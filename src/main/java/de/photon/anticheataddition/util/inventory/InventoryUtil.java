@@ -3,7 +3,6 @@ package de.photon.anticheataddition.util.inventory;
 import de.photon.anticheataddition.AntiCheatAddition;
 import de.photon.anticheataddition.ServerVersion;
 import de.photon.anticheataddition.util.mathematics.MathUtil;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -55,7 +54,11 @@ public sealed interface InventoryUtil permits LegacyInventoryUtil, ModernInvento
      */
     static void syncUpdateInventory(Player player)
     {
-        Bukkit.getScheduler().runTask(AntiCheatAddition.getInstance(), player::updateInventory);
+        player.getScheduler().run(
+                AntiCheatAddition.getInstance(),
+                task -> player.updateInventory(),
+                null
+        );
     }
 
     /**

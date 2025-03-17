@@ -4,6 +4,7 @@ description: ${project.description}
 author: Photon
 api-version: 1.16
 website: https://www.spigotmc.org/resources/anticheataddition.33590/
+folia-supported: true
 
 depend:
   - packetevents

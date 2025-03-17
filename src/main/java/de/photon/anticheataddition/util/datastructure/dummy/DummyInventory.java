@@ -62,6 +62,11 @@ public final class DummyInventory implements Inventory
         return new HashMap<>();
     }
 
+    @Override
+    public @NotNull HashMap<Integer, ItemStack> removeItemAnySlot(@NotNull ItemStack... itemStacks) throws IllegalArgumentException {
+        return null;
+    }
+
     @NotNull
     @Override
     public ItemStack[] getContents()
@@ -180,6 +185,11 @@ public final class DummyInventory implements Inventory
         // Dummy
     }
 
+    @Override
+    public int close() {
+        return 0;
+    }
+
     @NotNull
     @Override
     public List<HumanEntity> getViewers()
@@ -198,6 +208,11 @@ public final class DummyInventory implements Inventory
     @Override
     public InventoryHolder getHolder()
     {
+        return null;
+    }
+
+    @Override
+    public @Nullable InventoryHolder getHolder(boolean b) {
         return null;
     }
 

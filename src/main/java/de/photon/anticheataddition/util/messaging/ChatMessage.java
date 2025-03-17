@@ -4,6 +4,7 @@ import de.photon.anticheataddition.AntiCheatAddition;
 import lombok.experimental.UtilityClass;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 @UtilityClass
 public final class ChatMessage
@@ -20,9 +21,24 @@ public final class ChatMessage
      * Sends a message with the AntiCheatAddition prefix to a single recipient.
      * This method should be called asynchronously, else use {@link #sendMessage(CommandSender, String)}
      */
-    public static void sendSyncMessage(CommandSender recipient, String message)
-    {
-        Bukkit.getScheduler().runTask(AntiCheatAddition.getInstance(), () -> ChatMessage.sendMessage(recipient, message));
+    public static void sendSyncMessage(CommandSender recipient, String message) {
+        if (recipient == null) return;
+
+        if (recipient instanceof Player player) {
+            if (player.isOnline()) {
+                player.getScheduler().execute(
+                        AntiCheatAddition.getInstance(),
+                        () -> ChatMessage.sendMessage(player, message),
+                        null,
+                        0L
+                );
+            }
+        } else {
+            Bukkit.getGlobalRegionScheduler().execute(
+                    AntiCheatAddition.getInstance(),
+                    () -> ChatMessage.sendMessage(recipient, message)
+            );
+        }
     }
 
     /**
@@ -40,8 +56,10 @@ public final class ChatMessage
      * concatenations.
      * This method should be called asynchronously, else use {@link #sendMessage(Iterable, String)}
      */
-    public static void sendSyncMessage(final Iterable<? extends CommandSender> senders, final String message)
-    {
-        Bukkit.getScheduler().runTask(AntiCheatAddition.getInstance(), () -> ChatMessage.sendMessage(senders, message));
+    public static void sendSyncMessage(final Iterable<? extends CommandSender> senders, final String message) {
+        Bukkit.getGlobalRegionScheduler().run(
+                AntiCheatAddition.getInstance(),
+                task -> ChatMessage.sendMessage(senders, message)
+        );
     }
 }

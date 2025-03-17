@@ -26,7 +26,7 @@ public record Threshold(int vl, List<String> commandList) implements Comparable<
      */
     public void executeCommandList(Player player)
     {
-        Bukkit.getScheduler().runTask(
+        Bukkit.getGlobalRegionScheduler().execute(
                 AntiCheatAddition.getInstance(),
                 () -> {
                     for (String rawCommand : this.commandList) {

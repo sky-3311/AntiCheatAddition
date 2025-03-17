@@ -14,6 +14,7 @@ import io.github.retrooper.packetevents.util.SpigotConversionUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.Location;
 
 import javax.annotation.Nullable;
 
@@ -44,27 +45,46 @@ public final class LivingEntityIdLookup
         });
 
         // Do not immediately loop through all entities to cache them, as Bukkit may not have loaded all entities yet which leads to connection errors when players try to join.
-        Bukkit.getScheduler().runTaskLater(AntiCheatAddition.getInstance(), this::cacheAllEntities, CACHE_TIME);
+        Bukkit.getGlobalRegionScheduler().runDelayed(
+                AntiCheatAddition.getInstance(),
+                task -> this.cacheAllEntities(),
+                CACHE_TIME
+        );
     }
 
     private void cacheAllEntities()
     {
         for (World world : Bukkit.getWorlds()) {
-            for (LivingEntity entity : world.getLivingEntities()) cacheEntity(entity);
+            Location spawnLocation = world.getSpawnLocation();
+            Bukkit.getRegionScheduler().execute(
+                    AntiCheatAddition.getInstance(),
+                    spawnLocation,
+                    () -> {
+                        for (LivingEntity entity : world.getLivingEntities()) {
+                            cacheEntity(entity);
+                        }
+                    }
+            );
         }
     }
 
     private void cacheEntity(LivingEntity entity)
     {
-        final int entityId = entity.getEntityId();
-        final var entityType = SpigotConversionUtil.fromBukkitEntityType(entity.getType());
+        Bukkit.getRegionScheduler().execute(
+                AntiCheatAddition.getInstance(),
+                entity.getLocation(),
+                () -> {
+                    final int entityId = entity.getEntityId();
+                    final var entityType = SpigotConversionUtil.fromBukkitEntityType(entity.getType());
 
-        if (entityType == null) {
-            Log.fine(() -> "Attempted to cache null entityType: Entity ID " + entityId + " Raw type: " + entity.getType().name());
-            return;
-        }
+                    if (entityType == null) {
+                        Log.fine(() -> "Attempted to cache null entityType: Entity ID " + entityId + " Raw type: " + entity.getType().name());
+                        return;
+                    }
 
-        entityTypeCache.put(entityId, entityType);
+                    entityTypeCache.put(entityId, entityType);
+                }
+        );
     }
 
     public void cacheEntityId(int entityId, EntityType entityType)

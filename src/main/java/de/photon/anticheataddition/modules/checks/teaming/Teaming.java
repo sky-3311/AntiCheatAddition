@@ -90,10 +90,10 @@ public final class Teaming extends ViolationModule implements Listener
                 for (Player player : world.getPlayers()) {
                     final User user = User.getUser(player);
                     if (!User.isUserInvalid(user, Teaming.INSTANCE)
-                        // Correct game modes.
-                        && user.inAdventureOrSurvivalMode()
-                        // Not engaged in pvp.
-                        && user.getTimeMap().at(TimeKey.COMBAT).notRecentlyUpdated(noPvpTime)) {
+                            // Correct game modes.
+                            && user.inAdventureOrSurvivalMode()
+                            // Not engaged in pvp.
+                            && user.getTimeMap().at(TimeKey.COMBAT).notRecentlyUpdated(noPvpTime)) {
                         final var loc = player.getLocation();
                         // Not in a bypassed region.
                         if (safeZones.stream().noneMatch(safeZone -> safeZone.isInsideRegion(loc))) {
@@ -135,8 +135,8 @@ public final class Teaming extends ViolationModule implements Listener
     protected ViolationManagement createViolationManagement()
     {
         return ViolationLevelManagement.builder(this)
-                                       .loadThresholdsToManagement()
-                                       .withDecay(300, 1)
-                                       .build();
+                .loadThresholdsToManagement()
+                .withDecay(300, 1)
+                .build();
     }
 }

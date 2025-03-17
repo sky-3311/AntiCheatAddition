@@ -14,12 +14,17 @@ import de.photon.anticheataddition.util.violationlevels.Flag;
 import de.photon.anticheataddition.util.violationlevels.ViolationLevelManagement;
 import de.photon.anticheataddition.util.violationlevels.ViolationManagement;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
@@ -55,27 +60,73 @@ public final class DupingSecretCache extends ViolationModule implements Listener
                                     " at " + block.getX() + " " + block.getY() + " " + block.getZ() +
                                     " in " + secretCacheCheckDelayTicks + " ticks.");
 
-                    // Check after x minutes how many blocks surround the chest or shulker box.
-                    // If the chest or shulker box is completely surrounded, flag as secret cache.
-                    Bukkit.getScheduler().runTaskLater(AntiCheatAddition.getInstance(), () -> {
-                        // Now that the location is checked, allow queueing it again.
+                    final Location snapshotLoc = loc.clone();
+                    final UUID playerId = user.getPlayer().getUniqueId();
+
+                    Bukkit.getRegionScheduler().runDelayed(
+                            AntiCheatAddition.getInstance(),
+                            snapshotLoc.getWorld(),
+                            snapshotLoc.getBlockX() >> 4,
+                            snapshotLoc.getBlockZ() >> 4,
+                            task -> {
+
                         user.getData().object.dupingSecretCacheCurrentlyCheckedLocations.remove(loc);
 
-                        // Block has not changed.
+                        Player player = Bukkit.getPlayer(playerId);
+                        if (player == null || !player.isOnline()) return;
+
+                        Block currentBlock = snapshotLoc.getBlock();
+                        if (currentBlock.getType() != oldMaterial) return;
+
                         if (loc.getBlock().getType() != oldMaterial) return;
 
                         final long surroundingBlocks = WorldUtil.INSTANCE.countBlocksAround(block, WorldUtil.ALL_FACES, IGNORED_AROUND_INVENTORY);
 
                         Log.finer(() -> "Surrounding blocks for secret cache of player " + user.getPlayer().getName() + " : " + surroundingBlocks + " | Needed for flag: " + WorldUtil.ALL_FACES.size());
 
-                        // Secret cache if surrounded on all sides.
-                        if (surroundingBlocks == WorldUtil.ALL_FACES.size()) {
-                            getManagement().flag(Flag.of(user).setAddedVl(50).setDebug(() -> "Identified secret cache of player " + user.getPlayer().getName() +
-                                                                                             "of type " + oldMaterial +
-                                                                                             " at " + block.getX() + " " + block.getY() + " " + block.getZ() +
-                                                                                             " in world " + block.getWorld().getName()));
-                        }
+
                     }, secretCacheCheckDelayTicks);
+
+                    final Location blockLocation = block.getLocation();
+                    final World world = blockLocation.getWorld();
+                    final int chunkX = blockLocation.getBlockX() >> 4;
+                    final int chunkZ = blockLocation.getBlockZ() >> 4;
+
+                    // Check after x minutes how many blocks surround the chest or shulker box.
+                    // If the chest or shulker box is completely surrounded, flag as secret cache.
+                    Bukkit.getRegionScheduler().runDelayed(
+                            AntiCheatAddition.getInstance(),
+                            world,
+                            chunkX,
+                            chunkZ,
+                            task -> {
+                                final Player player = user.getPlayer();
+                                if (!player.isOnline()) return;
+
+                                // Now that the location is checked, allow queueing it again.
+                                user.getData().object.dupingSecretCacheCurrentlyCheckedLocations.remove(loc);
+
+                                // Block has not changed.
+                                if (blockLocation.getBlock().getType() != oldMaterial) return;
+
+                                final long surroundingBlocks = WorldUtil.INSTANCE.countBlocksAround(
+                                        blockLocation.getBlock(),
+                                        WorldUtil.ALL_FACES,
+                                        IGNORED_AROUND_INVENTORY
+                                );
+
+                                Log.finer(() -> "Surrounding blocks for secret cache of player " + user.getPlayer().getName() + " : " + surroundingBlocks + " | Needed for flag: " + WorldUtil.ALL_FACES.size());
+
+                                // Secret cache if surrounded on all sides.
+                                if (surroundingBlocks == WorldUtil.ALL_FACES.size()) {
+                                    getManagement().flag(Flag.of(user).setAddedVl(50).setDebug(() -> "Identified secret cache of player " + user.getPlayer().getName() +
+                                            "of type " + oldMaterial +
+                                            " at " + block.getX() + " " + block.getY() + " " + block.getZ() +
+                                            " in world " + block.getWorld().getName()));
+                                }
+                            },
+                            secretCacheCheckDelayTicks
+                    );
                 }
             }
         }

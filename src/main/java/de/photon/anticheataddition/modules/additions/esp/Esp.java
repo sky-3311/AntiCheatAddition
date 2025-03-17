@@ -16,6 +16,7 @@ import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.*;
+import java.util.logging.Level;
 import java.util.stream.Collectors;
 
 public final class Esp extends Module
@@ -88,28 +89,45 @@ public final class Esp extends Module
 
         // ----------------------------------------------------------- Task ------------------------------------------------------------ //
 
-        Bukkit.getScheduler().runTaskTimer(AntiCheatAddition.getInstance(), () -> {
-            for (World world : Bukkit.getWorlds()) {
-                final int playerTrackingRange = playerTrackingRanges.getOrDefault(world, defaultTrackingRange);
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(
+                AntiCheatAddition.getInstance(),
+                task -> {
+                    for (World world : Bukkit.getWorlds()) {
+                        Bukkit.getRegionScheduler().execute(
+                                AntiCheatAddition.getInstance(),
+                                world.getSpawnLocation(),
+                                () -> {
+                                    try {
+                                        final int trackingRange = playerTrackingRanges.getOrDefault(world, defaultTrackingRange);
 
-                final var worldPlayers = world.getPlayers().stream()
-                                              .map(User::getUser)
-                                              .filter(user -> !User.isUserInvalid(user, this))
-                                              .map(User::getPlayer)
-                                              .collect(Collectors.toUnmodifiableSet());
-
-                // Create the entries upfront to avoid creating the tree multiple times.
-                final List<Entry<Player, Point>> entries = worldPlayers.stream()
-                                                                       .map(User::rTreeEntryFromPlayer)
-                                                                       // No .toList() as the list needs to be mutable.
-                                                                       .collect(Collectors.toCollection(ArrayList::new));
-
-                // Create the RTree for the world.
-                RTree<Player, Point> rTree = RTree.dimensions(3).create(entries);
-
-                processWorldRTree(playerTrackingRange, worldPlayers, rTree);
-            }
-        }, 100, ESP_INTERVAL_TICKS);
+                                        final Set<Player> worldPlayers = world.getPlayers().stream()
+                                                .filter(Player::isOnline)
+                                                .map(User::getUser)
+                                                .filter(user -> !User.isUserInvalid(user, this))
+                                                .map(User::getPlayer)
+                                                .collect(Collectors.toUnmodifiableSet());
+                                        // Create the entries upfront to avoid creating the tree multiple times.
+                                        final List<Entry<Player, Point>> entries = new ArrayList<>();
+                                        for (Player player : worldPlayers) {
+                                            entries.add(User.rTreeEntryFromPlayer(player));
+                                        }
+                                        RTree<Player, Point> rTree = RTree.dimensions(3).create(entries);
+                                        // Create the RTree for the world.
+                                        processWorldRTree(trackingRange, worldPlayers, rTree);
+                                    } catch (Exception e) {
+                                        AntiCheatAddition.getInstance().getLogger().log(
+                                                Level.SEVERE,
+                                                "failed:" + world.getName()  + e.getMessage(),
+                                                e
+                                        );
+                                    }
+                                }
+                        );
+                    }
+                },
+                100,
+                ESP_INTERVAL_TICKS
+        );
     }
 
     private static void processWorldRTree(int playerTrackingRange, Set<Player> worldPlayers, RTree<Player, Point> rTree)

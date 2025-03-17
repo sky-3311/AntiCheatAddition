@@ -8,6 +8,7 @@ import de.photon.anticheataddition.util.violationlevels.Flag;
 import de.photon.anticheataddition.util.violationlevels.ViolationLevelManagement;
 import de.photon.anticheataddition.util.violationlevels.ViolationManagement;
 import org.bukkit.Bukkit;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerItemConsumeEvent;
@@ -27,19 +28,31 @@ public final class AutoEat extends ViolationModule implements Listener
     @EventHandler(ignoreCancelled = true)
     public void onConsume(PlayerItemConsumeEvent event)
     {
-        final var user = User.getUser(event.getPlayer());
+        final Player player = event.getPlayer();
+        final var user = User.getUser(player);
+
         // If the amount is 1, the last right click on a consumable will be perfect (bot-like), as the item disappears from the slot.
         if (User.isUserInvalid(user, this) || event.getItem().getAmount() <= 1) return;
 
-        Bukkit.getScheduler().runTaskLater(AntiCheatAddition.getInstance(), () -> {
-            // A PlayerInteractEvent will always fire when the right mouse button is clicked, therefore a legit player will always hold his mouse a bit longer than a bot and the last right click will
-            // be after the last consume event.
-            if (user.getTimeMap().at(TimeKey.RIGHT_CLICK_CONSUMABLE_ITEM_EVENT).getTime() < user.getTimeMap().at(TimeKey.CONSUME_EVENT).getTime()) {
-                this.getManagement().flag(Flag.of(user)
-                                              .setAddedVl(20)
-                                              .setCancelAction(cancelVl, () -> user.getTimeMap().at(TimeKey.AUTOEAT_TIMEOUT).update()));
-            }
-        }, 10L);
+        player.getScheduler().runDelayed(
+                AntiCheatAddition.getInstance(),
+                task -> {
+                    // A PlayerInteractEvent will always fire when the right mouse button is clicked, therefore a legit player will always hold his mouse a bit longer than a bot and the last right click will
+                    // be after the last consume event.
+
+                    if (!player.isOnline()) return;
+
+                    if (user.getTimeMap().at(TimeKey.RIGHT_CLICK_CONSUMABLE_ITEM_EVENT).getTime()
+                            < user.getTimeMap().at(TimeKey.CONSUME_EVENT).getTime()) {
+                        this.getManagement().flag(Flag.of(user)
+                                .setAddedVl(20)
+                                .setCancelAction(cancelVl, () -> user.getTimeMap().at(TimeKey.AUTOEAT_TIMEOUT).update()));
+                    }
+                },
+                null,
+                10L
+        );
+
 
         // Timeout
         if (user.getTimeMap().at(TimeKey.AUTOEAT_TIMEOUT).recentlyUpdated(timeout)) event.setCancelled(true);

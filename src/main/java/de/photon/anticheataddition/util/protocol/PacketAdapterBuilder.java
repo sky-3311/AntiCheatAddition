@@ -14,10 +14,7 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.*;
 import java.util.function.BiConsumer;
 
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
@@ -46,12 +43,26 @@ public final class PacketAdapterBuilder
      */
     public static boolean checkSync(long timeout, TimeUnit unit, @NotNull Callable<Boolean> task)
     {
+        final CompletableFuture<Boolean> future = new CompletableFuture<>();
+
+        Bukkit.getGlobalRegionScheduler().execute(
+                AntiCheatAddition.getInstance(),
+                () -> {
+                    try {
+                        future.complete(task.call());
+                    } catch (Exception e) {
+                        future.completeExceptionally(e);
+                    }
+                }
+        );
+
         try {
             // If the timeout is smaller than or equal to 0, wait indefinitely.
-            return timeout <= 0 ?
-                   Boolean.TRUE.equals(Bukkit.getScheduler().callSyncMethod(AntiCheatAddition.getInstance(), task).get()) :
-                   Boolean.TRUE.equals(Bukkit.getScheduler().callSyncMethod(AntiCheatAddition.getInstance(), task).get(timeout, unit));
-
+            if (timeout <= 0) {
+                return Boolean.TRUE.equals(future.get());
+            } else {
+                return Boolean.TRUE.equals(future.get(timeout, unit));
+            }
         } catch (InterruptedException | ExecutionException e) {
             Log.error("Unable to complete the synchronous calculations.", e);
             Thread.currentThread().interrupt();

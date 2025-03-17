@@ -36,7 +36,14 @@ public final class BrandHider extends Module implements Listener
 
     private void updateAllBrands()
     {
-        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) updateBrand(onlinePlayer);
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            onlinePlayer.getScheduler().execute(
+                    AntiCheatAddition.getInstance(),
+                    () -> updateBrand(onlinePlayer),
+                    null,
+                    0L
+            );
+        }
     }
 
     private void updateBrand(final Player player)
@@ -56,7 +63,14 @@ public final class BrandHider extends Module implements Listener
         this.setBrand(loadString(".brand", "Some Spigot"));
 
         final long refreshRate = loadLong(".refresh_rate", 0);
-        if (refreshRate > 0) Bukkit.getScheduler().runTaskTimer(AntiCheatAddition.getInstance(), this::updateAllBrands, 20, refreshRate);
+         if (refreshRate > 0) {
+             Bukkit.getGlobalRegionScheduler().runAtFixedRate(
+                     AntiCheatAddition.getInstance(),
+                     scheduledTask -> updateAllBrands(),
+                     20,
+                     refreshRate
+             );
+        }
     }
 
     @EventHandler

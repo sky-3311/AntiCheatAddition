@@ -64,7 +64,7 @@ public final class LogFileHandler
 
         // Schedule the first log file replacement to occur at the start of the next day. Then have a daily cycle.
         this.replaceDebugFile();
-        Bukkit.getScheduler().runTaskTimer(AntiCheatAddition.getInstance(), this::replaceDebugFile, TimeUtil.toTicks(difference), TimeUtil.toTicks(1, TimeUnit.DAYS));
+        Bukkit.getGlobalRegionScheduler().runAtFixedRate(AntiCheatAddition.getInstance(), task -> this.replaceDebugFile(), TimeUtil.toTicks(difference), TimeUtil.toTicks(1, TimeUnit.DAYS));
     }
 
     /**
